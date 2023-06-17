@@ -1,21 +1,29 @@
+// import { Logger, ILogObj } from "tslog";
+import "dotenv/config";
 import { Client, GatewayIntentBits } from "discord.js";
-import dotenv from "dotenv";
-dotenv.config();
+import { interactionCreateListener } from "./listeners/InteractionCreateListener";
+import { readyListener } from "./listeners/ReadyListener";
+import { createLogger, format, transports } from "winston";
 
-const client = new Client({ intents: [GatewayIntentBits.Guilds] });
-
-const TOKEN = process.env.TOKEN;
-
-client.on("ready", () => {
-  console.log(`Logged in as ${client.user?.tag}!`);
+export const logger = createLogger({
+  level: "debug",
+  format: format.combine(format.colorize(), format.simple()),
+  transports: [new transports.Console()],
 });
 
-client.on("interactionCreate", async (interaction) => {
-  if (!interaction.isChatInputCommand()) return;
+logger.info("Start bot");
 
-  if (interaction.commandName === "ping") {
-    await interaction.reply("Pong!");
-  }
+export const discordClient = new Client({
+  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates],
 });
 
-client.login(TOKEN);
+discordClient.on("interactionCreate", interactionCreateListener);
+discordClient.on("ready", readyListener);
+
+async function main() {
+  await discordClient.login(process.env.DISCORD_TOKEN);
+}
+
+main().catch((e) => {
+  throw e;
+});
